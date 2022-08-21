@@ -1,154 +1,112 @@
 # importing required libraries
 import sys
 import pandas as pd
-import numpy as np
-import sqlite3
 from sqlalchemy import create_engine
-from nltk.tokenize import word_tokenize
-from nltk.stem import WordNetLemmatizer
-from nltk.corpus import stopwords
-import nltk
-nltk.download(['punkt', 'wordnet', 'stopwords'])
 
 
-from sklearn.metrics import confusion_matrix
-from sklearn.metrics import classification_report
-from sklearn.model_selection import train_test_split
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.feature_extraction.text import CountVectorizer, TfidfTransformer
-from sklearn.pipeline import Pipeline
-from sklearn.multioutput import MultiOutputClassifier
-from sklearn.neighbors import KNeighborsClassifier
-from sklearn.model_selection import GridSearchCV
-
-def load_data(database_filepath):
+def load_data(messages_filepath, categories_filepath):
     """
     Load Data Function
-    Function to load data from SQLite database and return dataframe
+    Function to load input data file, merge, and output combined data into 1 dataframe
     
     Inputs:
-    database_filepath - path to database
+    messages_filepath - path to disaster messages csv file
+    categories_filepath - path to categories csv file
     
     Returns:
-    X - Input feature 'message' vector
-    Y = Output feature 'categories' vector
-    df.columns - column category headings for Y
+    df - merged dataset of messages and categories data
     """
-    engine = create_engine('sqlite:////home/workspace/' + str(database_filepath))
-    df = pd.read_sql('SELECT * FROM messages', engine)
-    X = df['message']
-    Y = df.iloc[:,4:]
-    return X, Y, df.columns[4:]
+
+    # reading in csv file and converting to dataframe
+    messages = pd.read_csv(messages_filepath)
+    categories = pd.read_csv(categories_filepath)
+
+    # merging both messages and categories dataframe into 1 dataframe
+    df = pd.merge(messages, categories, on='id')
+    return df
 
 
-def tokenize(text):
+def clean_data(df):
     """
-    Tokenize Function
-    Function that takes in message text and return a lemmatized word list, with the text lowercased, and whitespace removed
+    Clean Data Function
+    Function that takes as input the merged dataset dataframe object from load_data function.
+    Purpose is to make 36 additional columns, one for each possible message outut classification.
+    The 36 category columns will be our MultiOutput Y prediction vector for our ML model.
+    For each input message X, this function will provide a value of 1 if a given Y column indicates 'yes' for that category, a 0 will be 'no' for that category.
     
     Inputs:
-    text - raw message text
+    df - DataFrame object returned from load_data function
     
     Returns:
-    clean_tokens - message list with text lemmatized, stopwords removed, lowercased, and whitespace removed
+    df - cleaned dataframe object (refer to description above regarding details of cleaned dataframe)
     """
-    tokens = word_tokenize(text)
-    lemmatizer = WordNetLemmatizer()
-    stop_words = stopwords.words("english")
-    
-    clean_tokens = [lemmatizer.lemmatize(word).lower().strip() for word in tokens if word not in stop_words]
-    
-    return clean_tokens
+    # expanding categories column from 1 into 36 separate categoreis, with ';' as the delimiter
+    categories = df.categories.str.split(';', expand=True)
+    row = categories.iloc[0]
 
+    # setting column header name to the string vlaue from the first position up to the second to last position
+    category_colnames = row.apply(lambda x: x[0:-2])
+    categories.columns = category_colnames
 
-def build_model():
-    """
-    Build Model Function
-    Function that builds the ML pipeline, returning ML model
-    
-    Inputs:
-    No input
-    
-    Returns:
-    returns ML model (cv), using K-Nearest Neighbours algorithm for MultiOuput Classification, with optimized parameter for number of neighbors using GridSearchCV
-    """
-    pipeline = Pipeline([
-        ('vect', CountVectorizer(tokenizer=tokenize)),
-        ('tfidf', TfidfTransformer()),
-        ('clf', MultiOutputClassifier(KNeighborsClassifier()))
-    ])
-       
-    pipeline.get_params() 
-    parameters = {
-    'clf__estimator__n_neighbors': [5, 10]
-    }
-    cv = GridSearchCV(pipeline, param_grid=parameters, n_jobs=-1, verbose=2)
-    
-    return pipeline
+    # setting each of the 36 categorical columns to 1 or 0 values
+    for column in categories:
+        categories[column] = categories[column].astype(str).str.get(-1)
+        categories[column] = categories[column].astype(float)
+
+    # removing original categories column
+    df.drop(columns='categories', inplace=True)
+
+    # adding cleaned categories column to existing dataframe
+    df = pd.concat([df, categories], axis=1)
+
+    # removing duplicate values in the dataframe
+    df.drop_duplicates(inplace=True)
+
+    # removing null values in the dataframe
+    df.dropna(subset=['related', 'request', 'offer',
+       'aid_related', 'medical_help', 'medical_products', 'search_and_rescue',
+       'security', 'military', 'child_alone', 'water', 'food', 'shelter',
+       'clothing', 'money', 'missing_people', 'refugees', 'death', 'other_aid',
+       'infrastructure_related', 'transport', 'buildings', 'electricity',
+       'tools', 'hospitals', 'shops', 'aid_centers', 'other_infrastructure',
+       'weather_related', 'floods', 'storm', 'fire', 'earthquake', 'cold',
+       'other_weather', 'direct_report'], inplace=True)
+
+    # in the 'related' column, replacing all values of 2 and setting to 1
+    df.related.replace(to_replace=2, value=1, inplace=True)
+    return df
     
 
-def evaluate_model(model, X_test, y_test, category_names):
-    """
-    Evaluate Model Function
-    Function that tests the ML model on unseen data
-    
-    Inputs:
-    model - ML model created from build_model function
-    X_test - data from 'messages' column (X) in dataframe that was not used in training of ML model
-    y_test - data from the 36 categories column (y) in dataframe that was not used in training of ML model
-    category_names - used in the classifcation report for column headers
-    
-    Returns:
-    y_pred - category predictions for X_test
-    classification report - report showing precision, recall, F1 score performance for the test dataset
-    """
-    y_pred = model.predict(X_test)
-    print(classification_report(y_test, y_pred, target_names = category_names))
-    
-    
-def save_model(model, model_filepath):
-    """
-    Save Model Function
-    Function that saves the ML model and exports as pickle file
-    
-    Inputs:
-    model - ML model created from build_model function
-    model_filepath - path to model
-    
-    Returns:
-    classifier.pkl - pickle file of our ML model that can be used for future unseen data via the web app
-    """
-    import pickle
-    with open('classifier.pkl', 'wb') as f:
-        pickle.dump(model, f)
+def save_data(df, database_filename):
+    # creating SQLite database 'DisasterResponse.db', and posting dataframe df to 'messages'
+    engine = create_engine('sqlite:///' + str(database_filename))
+    df.to_sql('messages', engine, index=False, if_exists='replace')
 
 
 def main():
-    if len(sys.argv) == 3:
-        database_filepath, model_filepath = sys.argv[1:]
-        print('Loading data...\n    DATABASE: {}'.format(database_filepath))
-        X, Y, category_names = load_data(database_filepath)
-        X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.2)
-        
-        print('Building model...')
-        model = build_model()
-        
-        print('Training model...')
-        model.fit(X_train, Y_train)
-        
-        print('Evaluating model...')
-        evaluate_model(model, X_test, Y_test, category_names)
+    if len(sys.argv) == 4:
 
-        print('Saving model...\n    MODEL: {}'.format(model_filepath))
-        save_model(model, model_filepath)
+        messages_filepath, categories_filepath, database_filepath = sys.argv[1:]
 
-        print('Trained model saved!')
+        print('Loading data...\n    MESSAGES: {}\n    CATEGORIES: {}'
+              .format(messages_filepath, categories_filepath))
+        df = load_data(messages_filepath, categories_filepath)
 
+        print('Cleaning data...')
+        df = clean_data(df)
+        
+        print('Saving data...\n    DATABASE: {}'.format(database_filepath))
+        save_data(df, database_filepath)
+        
+        print('Cleaned data saved to database!')
+    
     else:
-        print('Please provide the filepath of the disaster messages database '\
-              'as the first argument and the filepath of the pickle file to '\
-              'save the model to as the second argument. \n\nExample: python '\
-              'train_classifier.py ../data/DisasterResponse.db classifier.pkl')
+        print('Please provide the filepaths of the messages and categories '\
+              'datasets as the first and second argument respectively, as '\
+              'well as the filepath of the database to save the cleaned data '\
+              'to as the third argument. \n\nExample: python process_data.py '\
+              'disaster_messages.csv disaster_categories.csv '\
+              'DisasterResponse.db')
 
 
 if __name__ == '__main__':
