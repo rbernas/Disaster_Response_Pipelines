@@ -29,10 +29,20 @@ Associated file: <em>workspace/models/train_classifier.py</em>
 Flask is used to displays results in a web app, along with 3 plots showing distributions for the data set in a bar char and pie charts.
 Associated file: <em>workspace/app/run.py</em>
  
-## How to run <a name="run"></a>
+## How to Run <a name="run"></a>
 
-Run the following command in the app's directory to run your web app - <em> python run.py </em>. 
-Go to http://0.0.0.0:3001/
+Run the following commands in the project's root directory and in below order to setup the database and ML model.
+
+1) <b>ETL</b>
+	<em>python data/process_data.py data/disaster_messages.csv data/disaster_categories.csv data/DisasterResponse.db</em>
+	
+2) <b>Machine Learning Pipeline</b>
+	<em>python models/train_classifier.py data/DisasterResponse.db models/classifier.pkl</em>
+
+3) <b>Flask App</b>
+	<em> python run.py </em>. 
+
+4)	Go to http://0.0.0.0:3001/
 
 ## Licensing, Authors, Acknowledgements<a name="licensing"></a>
 
