@@ -22,18 +22,19 @@ from sklearn.neighbors import KNeighborsClassifier
 from sklearn.model_selection import GridSearchCV
 
 def load_data(database_filepath):
-     """
+    """
     Load Data Function
     Function to load data from SQLite database and return dataframe
     
     Inputs:
     database_filepath - path to database
     
-    Output:
-    df - cleaned df from process_data.py script
+    Returns:
+    X - Input feature 'message' vector
+    Y = Output feature 'categories' vector
+    df.columns - column category headings for Y
     """
-     
-    engine = create_engine('sqlite:////home/workspace/data/DisasterResponse.db')
+    engine = create_engine('sqlite:////home/workspace/' + str(database_filepath))
     df = pd.read_sql('SELECT * FROM messages', engine)
     X = df['message']
     Y = df.iloc[:,4:]
@@ -48,7 +49,7 @@ def tokenize(text):
     Inputs:
     text - raw message text
     
-    Output:
+    Returns:
     clean_tokens - message list with text lemmatized, stopwords removed, lowercased, and whitespace removed
     """
     tokens = word_tokenize(text)
@@ -68,7 +69,7 @@ def build_model():
     Inputs:
     No input
     
-    Output:
+    Returns:
     returns ML model (cv), using K-Nearest Neighbours algorithm for MultiOuput Classification, with optimized parameter for number of neighbors using GridSearchCV
     """
     pipeline = Pipeline([
@@ -82,9 +83,9 @@ def build_model():
     'clf__estimator__n_neighbors': [5, 10]
     }
     cv = GridSearchCV(pipeline, param_grid=parameters, n_jobs=-1, verbose=2)
+   
     return cv
     
-
 
 def evaluate_model(model, X_test, y_test, category_names):
     """
@@ -96,8 +97,8 @@ def evaluate_model(model, X_test, y_test, category_names):
     X_test - data from 'messages' column (X) in dataframe that was not used in training of ML model
     y_test - data from the 36 categories column (y) in dataframe that was not used in training of ML model
     category_names - used in the classifcation report for column headers
-
-    Output:
+    
+    Returns:
     y_pred - category predictions for X_test
     classification report - report showing precision, recall, F1 score performance for the test dataset
     """
@@ -105,7 +106,6 @@ def evaluate_model(model, X_test, y_test, category_names):
     print(classification_report(y_test, y_pred, target_names = category_names))
     
     
-
 def save_model(model, model_filepath):
     """
     Save Model Function
@@ -114,8 +114,8 @@ def save_model(model, model_filepath):
     Inputs:
     model - ML model created from build_model function
     model_filepath - path to model
-
-    Output:
+    
+    Returns:
     classifier.pkl - pickle file of our ML model that can be used for future unseen data via the web app
     """
     import pickle
