@@ -38,6 +38,3 @@ Go to http://0.0.0.0:3001/
 
 Thank you to Figure Eight for the data and to Udacity for the guidance and help.  
 
-1. Which chess openings lead to the greatest number of wins for white? How about for black? Do rated games affect the opening used?
-2. Do time controls affect the winner? Is there a bias towards white or black winner as the number of turns increases?
-3. Can we predict the winner based on multiple factors other than player rating? How does this compare to predictions based on player rating only?
