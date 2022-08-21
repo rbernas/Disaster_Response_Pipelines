@@ -34,7 +34,14 @@ def load_data(database_filepath):
     Y = Output feature 'categories' vector
     df.columns - column category headings for Y
     """
+<<<<<<< HEAD
     engine = create_engine('sqlite:///' + str(database_filepath))
+||||||| 1e6a916
+     
+    engine = create_engine('sqlite:////home/workspace/data/DisasterResponse.db')
+=======
+    engine = create_engine('sqlite:////home/workspace/' + str(database_filepath))
+>>>>>>> 1a9ae869ad1f14bb9293a4ee9e3a89ba2a4eb652
     df = pd.read_sql('SELECT * FROM messages', engine)
     X = df['message']
     Y = df.iloc[:,4:]
