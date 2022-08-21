@@ -1,3 +1,4 @@
+# importing required libraries
 import sys
 import pandas as pd
 import numpy as np
@@ -21,6 +22,17 @@ from sklearn.neighbors import KNeighborsClassifier
 from sklearn.model_selection import GridSearchCV
 
 def load_data(database_filepath):
+     """
+    Load Data Function
+    Function to load data from SQLite database and return dataframe
+    
+    Inputs:
+    database_filepath - path to database
+    
+    Output:
+    df - cleaned df from process_data.py script
+    """
+     
     engine = create_engine('sqlite:////home/workspace/data/DisasterResponse.db')
     df = pd.read_sql('SELECT * FROM messages', engine)
     X = df['message']
@@ -29,6 +41,16 @@ def load_data(database_filepath):
 
 
 def tokenize(text):
+    """
+    Tokenize Function
+    Function that takes in message text and return a lemmatized word list, with the text lowercased, and whitespace removed
+    
+    Inputs:
+    text - raw message text
+    
+    Output:
+    clean_tokens - message list with text lemmatized, stopwords removed, lowercased, and whitespace removed
+    """
     tokens = word_tokenize(text)
     lemmatizer = WordNetLemmatizer()
     stop_words = stopwords.words("english")
@@ -39,6 +61,16 @@ def tokenize(text):
 
 
 def build_model():
+    """
+    Build Model Function
+    Function that builds the ML pipeline, returning ML model
+    
+    Inputs:
+    No input
+    
+    Output:
+    returns ML model (cv), using K-Nearest Neighbours algorithm for MultiOuput Classification, with optimized parameter for number of neighbors using GridSearchCV
+    """
     pipeline = Pipeline([
         ('vect', CountVectorizer(tokenizer=tokenize)),
         ('tfidf', TfidfTransformer()),
@@ -55,13 +87,37 @@ def build_model():
 
 
 def evaluate_model(model, X_test, y_test, category_names):
+    """
+    Evaluate Model Function
+    Function that tests the ML model on unseen data
+    
+    Inputs:
+    model - ML model created from build_model function
+    X_test - data from 'messages' column (X) in dataframe that was not used in training of ML model
+    y_test - data from the 36 categories column (y) in dataframe that was not used in training of ML model
+    category_names - used in the classifcation report for column headers
+
+    Output:
+    y_pred - category predictions for X_test
+    classification report - report showing precision, recall, F1 score performance for the test dataset
+    """
     y_pred = model.predict(X_test)
     print(classification_report(y_test, y_pred, target_names = category_names))
     
     
 
-
 def save_model(model, model_filepath):
+    """
+    Save Model Function
+    Function that saves the ML model and exports as pickle file
+    
+    Inputs:
+    model - ML model created from build_model function
+    model_filepath - path to model
+
+    Output:
+    classifier.pkl - pickle file of our ML model that can be used for future unseen data via the web app
+    """
     import pickle
     with open('classifier.pkl', 'wb') as f:
         pickle.dump(model, f)
