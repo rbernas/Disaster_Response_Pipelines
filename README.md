@@ -33,14 +33,14 @@ Associated file: <em>workspace/app/run.py</em>
 
 Run the following commands in the project's root directory and in below order to setup the database and ML model.
 
-1) <b>ETL</b>
-	<em>python data/process_data.py data/disaster_messages.csv data/disaster_categories.csv data/DisasterResponse.db</em>
+1) <b>ETL</b><br>
+	Run <em>python data/process_data.py data/disaster_messages.csv data/disaster_categories.csv data/DisasterResponse.db</em>
 	
-2) <b>Machine Learning Pipeline</b>
-	<em>python models/train_classifier.py data/DisasterResponse.db models/classifier.pkl</em>
+2) <b>Machine Learning Pipeline</b><br>
+	Run <em>python models/train_classifier.py data/DisasterResponse.db models/classifier.pkl</em>
 
-3) <b>Flask App</b>
-	<em> python run.py </em>. 
+3) <b>Flask App</b><br>
+	Run <em> python run.py</em>
 
 4)	Go to http://0.0.0.0:3001/
 
