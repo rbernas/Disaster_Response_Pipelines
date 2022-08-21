@@ -13,7 +13,7 @@ def load_data(messages_filepath, categories_filepath):
     messages_filepath - path to disaster messages csv file
     categories_filepath - path to categories csv file
     
-    Output:
+    Returns:
     df - merged dataset of messages and categories data
     """
 
@@ -27,7 +27,7 @@ def load_data(messages_filepath, categories_filepath):
 
 
 def clean_data(df):
-     """
+    """
     Clean Data Function
     Function that takes as input the merged dataset dataframe object from load_data function.
     Purpose is to make 36 additional columns, one for each possible message outut classification.
@@ -37,10 +37,9 @@ def clean_data(df):
     Inputs:
     df - DataFrame object returned from load_data function
     
-    Output:
+    Returns:
     df - cleaned dataframe object (refer to description above regarding details of cleaned dataframe)
     """
-
     # expanding categories column from 1 into 36 separate categoreis, with ';' as the delimiter
     categories = df.categories.str.split(';', expand=True)
     row = categories.iloc[0]
@@ -49,7 +48,7 @@ def clean_data(df):
     category_colnames = row.apply(lambda x: x[0:-2])
     categories.columns = category_colnames
 
-    # setting each of the 36 columns to 1 or 0
+    # setting each of the 36 categorical columns to 1 or 0 values
     for column in categories:
         categories[column] = categories[column].astype(str).str.get(-1)
         categories[column] = categories[column].astype(float)
@@ -80,8 +79,8 @@ def clean_data(df):
 
 def save_data(df, database_filename):
     # creating SQLite database 'DisasterResponse.db', and posting dataframe df to 'messages'
-    engine = create_engine('sqlite:///DisasterResponse.db')
-    df.to_sql('messages', engine, index=False)
+    engine = create_engine('sqlite:///' + str(database_filename))
+    df.to_sql('messages', engine, index=False, if_exists='replace')
 
 
 def main():
